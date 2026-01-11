@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <title>Sistem Peminjaman Lapangan USSC</title>
+  <style>
+    body { font-family: Arial, sans-serif; background:#f4f6f8; }
+    h1 { text-align:center; }
+    .container {
+      max-width: 900px;
+      margin: auto;
+      background: #fff;
+      padding: 20px;
+      border-radius: 8px;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 15px;
+    }
+    th, td {
+      border: 1px solid #ccc;
+      padding: 8px;
+      text-align: center;
+    }
+    th { background: #eee; }
+    input, select, button {
+      padding: 6px;
+      margin: 4px;
+    }
+    .success { color: green; }
+    .error { color: red; }
+  </style>
+</head>
+
+<body>
+<div class="container">
+
+  <h1>Sistem Peminjaman Lapangan USSC</h1>
+
+  <h3>Login User</h3>
+  <input type="text" id="username" placeholder="username">
+  <input type="password" id="password" placeholder="password">
+  <button onclick="login()">Login</button>
+  <p id="loginStatus"></p>
+
+  <hr>
+
+  <div id="app" style="display:none;">
+
+    <h3>Form Peminjaman</h3>
+
+    <input type="text" id="nama" placeholder="Nama Peminjam">
+
+    <select id="lapangan">
+      <option value="Futsal">Futsal</option>
+      <option value="Basket">Basket</option>
+      <option value="Badminton">Badminton</option>
+    </select>
+
+    <input type="date" id="tanggal">
+    <input type="time" id="jam">
+
+    <button onclick="ajukan()">Ajukan</button>
+    <p id="pesan"></p>
+
+    <h3>Jadwal Peminjaman</h3>
+    <table>
+      <thead>
+        <tr>
+          <th>Nama</th>
+          <th>Lapangan</th>
+          <th>Tanggal</th>
+          <th>Jam</th>
+        </tr>
+      </thead>
+      <tbody id="jadwal"></tbody>
+    </table>
+
+  </div>
+</div>
+
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+
+<script>
+const firebaseConfig = {
+  apiKey: "ISI_API_KEY",
+  authDomain: "PROJECT_ID.firebaseapp.com",
+  databaseURL: "https://PROJECT_ID-default-rtdb.firebaseio.com",
+  projectId: "PROJECT_ID"
+};
+
+firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
+let currentUser = null;
+
+function login() {
+  if (username.value === "user" && password.value === "1234") {
+    currentUser = username.value;
+    app.style.display = "block";
+    loginStatus.textContent = "Login berhasil";
+    loginStatus.className = "success";
+  } else {
+    loginStatus.textContent = "Login gagal";
+    loginStatus.className = "error";
+  }
+}
+
+function ajukan() {
+  if (!nama.value || !tanggal.value || !jam.value) {
+    pesan.textContent = "Semua data wajib diisi!";
+    pesan.className = "error";
+    return;
+  }
+
+  db.ref("peminjaman").once("value").then(snapshot => {
+    let bentrok = false;
+    snapshot.forEach(child => {
+      const d = child.val();
+      if (d.lapangan === lapangan.value &&
+          d.tanggal === tanggal.value &&
+          d.jam === jam.value) {
+        bentrok = true;
+      }
+    });
+
+    if (bentrok) {
+      pesan.textContent = "Jadwal sudah terpakai!";
+      pesan.className = "error";
+    } else {
+      db.ref("peminjaman").push({
+        namaPeminjam: nama.value,
+        lapangan: lapangan.value,
+        tanggal: tanggal.value,
+        jam: jam.value
+      });
+
+      pesan.textContent = "Peminjaman berhasil!";
+      pesan.className = "success";
+      nama.value = "";
+      tanggal.value = "";
+      jam.value = "";
+    }
+  });
+}
+
+db.ref("peminjaman").on("value", snapshot => {
+  jadwal.innerHTML = "";
+  snapshot.forEach(child => {
+    const d = child.val();
+    jadwal.innerHTML += `
+      <tr>
+        <td>${d.namaPeminjam}</td>
+        <td>${d.lapangan}</td>
+        <td>${d.tanggal}</td>
+        <td>${d.jam}</td>
+      </tr>`;
+  });
+});
+</script>
+
+</body>
+</html>
