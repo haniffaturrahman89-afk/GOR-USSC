@@ -1,0 +1,2 @@
+# GOR-USSC
+GOR JOSJIS
